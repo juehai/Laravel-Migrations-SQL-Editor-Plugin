@@ -32,8 +32,7 @@ DiffExporter.prototype.diffExport = function(container,diffContainer)
 {
     
     var result = "\n";
-    
-    
+        
     var resultList = [];
     
     var objectList = container.objects;
@@ -44,27 +43,11 @@ DiffExporter.prototype.diffExport = function(container,diffContainer)
         compObjectList = [];
     }
     
-    
-
-    
-    
-
-    
     var nameFunction = function(object) {
         return object.fullyQualifiedName;
     }
     
-    
     var diffResult = this.calculateDiffSets(objectList,compObjectList,nameFunction);
-    
-    
-    
-    
-
-    
-
-    
-
     
 
     // currently there are three separate text blocks
@@ -75,11 +58,11 @@ DiffExporter.prototype.diffExport = function(container,diffContainer)
     // preload at the top
 
 
-    var preloadBlock = ""
+    var preloadBlock = "";
     var tableBlock = "";
     var viewBlock = "";
     
-    var postLoadBlock = ""
+    var postLoadBlock = "";
     
     // add new tables
 
@@ -232,6 +215,31 @@ DiffExporter.prototype.quoteObjectName = function(objectName) {
     return this.quoteName(schema)+"."+this.quoteName(baseName)
     
 
+}
+
+DiffExporter.prototype.commaSeparatedList = function(list, quoted)
+{
+	if (list.length == 0) {
+        return "";
+    }
+
+    var result = list[0];
+    
+    if (quoted) {
+		result = "'" + result + "'";
+    }
+
+    for (i=1;i<list.length;i++) {
+    
+        var newValue = list[i];
+        
+        if (quoted) {
+			newValue = "'" + newValue + "'";
+            
+        }
+        result += ", "+newValue;
+    }
+    return result;
 }
 
 DiffExporter.prototype.commaSeparatedKeyList = function(list,keyName,quoted)
@@ -573,49 +581,97 @@ DiffExporter.prototype.fieldSpec = function(table,field)
 	    case "smallInteger":
 	    	if (ifProp(field.primaryKey) && ifProp(field.properties.autoIncrement) && ifProp(field.properties.unsigned)) {
 		    	result += this.quoteName(field.type).slice(0, -6);
-		    	result += "ncrements"
+		    	result += "ncrements";
+		    	result += "('"+this.quoteName(field.name)+"')";
 	    	} else {
-	    	    if (ifProp(field.properties.unsigned)) {
-				    result += "unsigned"
-				    result += this.capitalizeFirstLetter(field.type);
-			    } else {
-					result += field.type;    
+			    result += field.type;
+			    result += "('"+this.quoteName(field.name)+"')";
+			    
+			    if (ifProp(field.properties.unsigned)) {
+				    result += "->unsigned()";
+			    }
+			    
+				if (ifProp(field.properties.unique)) {
+			        result += "->unique()"
+			    }
+			
+			    if (!ifProp(field.properties.notNull)) {
+			        result += "->nullable()"
+			    }
+			
+			    if (field.properties.defaultValue != "") {
+			        result += "->default("+this.quotedDefaultValue(field)+")";
 			    }
 	    	}
 	    	
-	    	result += "('"+this.quoteName(field.name)+"')";
 	    	break;
 	    case (field.type.match(/^char/) || {}).input:
 	    case (field.type.match(/^string/) || {}).input:
 	    case (field.type.match(/^float/) || {}).input:
 	    case (field.type.match(/^decimal/) || {}).input:
 	    case (field.type.match(/^double/) || {}).input:
-	    	elements = field.type.split("(");
-	    	
-	    	fieldType = elements[0];
-	    	fieldSize = String(elements[1]).slice(0, -1);
+	    	var elements = field.type.split("(");
+	    	var fieldType = elements[0];
+	    	var fieldSize = String(elements[1]).slice(0, -1);
 	    		    	
 	    	result += fieldType;
 	    	result += "('"+this.quoteName(field.name)+"', ";
 	    	result += fieldSize +")";
-    }
-    
-    
-    
+	    	
+		    if (ifProp(field.properties.unique)) {
+		        result += "->unique()"
+		    }
+		
+		    if (!ifProp(field.properties.notNull)) {
+		        result += "->nullable()"
+		    }
+		
+		    if (field.properties.defaultValue != "") {
+		        result += "->default("+this.quotedDefaultValue(field)+")";
+		    }
 
-    
-    
-    
-    if (ifProp(field.properties.unique)) {
-        result += "->unique()"
-    }
+	    	break;
+	    case (field.type.match(/^timestamps/) || {}).input:
+		    result += this.quoteName(field.type)
+		    
+	    	if (ifProp(field.properties.timezone)) {
+		    	result += "Tz";
+		    	
+	    	}
+	   
+	    	result += "()";
+	    	break;
+	    case (field.type.match(/^timestamp/) || {}).input:
+		    result += this.quoteName(field.type)
+		    
+	    	if (ifProp(field.properties.timezone)) {
+		    	result += "Tz";
+		    	
+	    	}
+	   
+	    	result += "('"+this.quoteName(field.name)+"')";
+	    	
+		    if (ifProp(field.properties.unique)) {
+		        result += "->unique()"
+		    }
+		
+		    if (!ifProp(field.properties.notNull)) {
+		        result += "->nullable()"
+		    }
+		
+		    if (field.properties.defaultValue != "") {
+		        result += "->default("+this.quotedDefaultValue(field)+")";
+		    }
 
-    if (!ifProp(field.properties.notNull)) {
-        result += "->nullable()"
-    }
-
-    if (field.properties.defaultValue != "") {
-        result += "->default("+this.quotedDefaultValue(field)+")";
+	    	break;
+	    case "rememberToken":
+	    	result += "rememberToken()";
+	    	break;
+	    case "softDeletes":
+	    	result += "softDeletes()";
+	    	break;
+	    default:
+	    	result += this.quoteName(field.type);
     }
     
     return result;
@@ -640,53 +696,110 @@ DiffExporter.prototype.dropTable = function(table)
 }
 
 DiffExporter.prototype.addTable = function(table) 
-{
+{   
+    var result = "\n/** "+ this.nameForObject(table) +" **/\n";
     
-    var result = "\nSchema::create('"+ this.nameForObject(table) + "', function(Blueprint $table) {\n"
-    
+    result += "\nSchema::create('"+ this.nameForObject(table) + "', function(Blueprint $table) {\n"
+
+	var primaries = new Array();
+	var indices = new Array();
     for (var i=0;i<table.fields.length;i++) {
         var field = table.fields[i];
 
         result += this.fieldSpec(table,field)
 
-        if (i<table.fields.length-1 || table.primaryKeyList || table.foreignKeys.length) {
-            result += ",\n";
+		if (ifProp(field.primaryKey)) {
+			if (field.type.match(/nteger$/) && ifProp(field.properties.autoIncrement) && ifProp(field.properties.unsigned)) {
+				
+			} else {
+				primaries.push(field.name);
+			}
+		}
+		
+		if (ifProp(field.properties.indexed)) {
+			indices.push(field.name);
+		}
+		
+        if (i<table.fields.length-1 || primaries.length > 0 || table.foreignKeys.length) {
+            result += ";\n";
+        } else {
+	        result += ";";
+        }
+
+    }
+
+    if (primaries.length > 0) {
+        result += "\n\t$table->primary(["+this.commaSeparatedList(primaries, true)+"]);"
+		
+        if (table.foreignKeys.length) {
+            result += ";\n";
         }
     }
 
-    if (table.primaryKeyList) {
-		
-        result += "PRIMARY KEY ("+table.primaryKeyList+")"
-		
-        if (table.foreignKeys.length) {
-            result += ",\n";
-        }
-    }
+	if (indices.length) {
+		result += "\n";
+	}
+	
+	for (var j=0; j<indices.length; j++) {
+		result += "\n\t$table->index";
+		result += "('"+indices[j]+"');";
+	}
+	
+	if (table.foreignKeys.length) {
+		result += "\n";
+	}
 
     for (var k=0;k<table.foreignKeys.length;k++) {
         var foreignKey = table.foreignKeys[k];
 
-        result += "FOREIGN KEY ";
+        result += "\t$table->foreign";
 
         
 
-        result += "("+this.commaSeparatedKeyList(foreignKey.fieldPairs,"sourceFieldName",true)+")";
+        result += "('"+this.commaSeparatedKeyList(foreignKey.fieldPairs,"sourceFieldName",true)+"')";
 
-        result += " REFERENCES ";
+        result += "->references";
+        result += "('"+this.commaSeparatedKeyList(foreignKey.fieldPairs,"targetFieldName",true)+"')";
+		result += "->on"
+        result += "('"+this.quoteObjectName(foreignKey.targetTableName)+"')";
 
-        result += this.quoteObjectName(foreignKey.targetTableName);
-
-        result += "("+this.commaSeparatedKeyList(foreignKey.fieldPairs,"targetFieldName",true)+")";
-
+// 		result += dump(foreignKey);
         if (k < table.foreignKeys.length-1) {
             result += ",\n"
         }
     }
-
-    
     
     result += "\n});\n"
 
+	result += "\nSchema:dropIfExists('"+ this.nameForObject(table) + "'";
+
+	if (table.primaryKeyList || table.foreignKeys.length) {
+		result += ", function ($table) {\n";
+
+		if (table.foreignKeys.length) {
+			result += "\t$table->dropForeign(["
+	
+			for (var k=0;k<table.foreignKeys.length;k++) {
+				var foreignKey = table.foreignKeys[k];
+				
+				result += "'"+this.commaSeparatedKeyList(foreignKey.fieldPairs,"sourceFieldName",true)+"'";
+			}
+			
+			result += "]);\n";
+		}
+		
+		if (table.primaryKeyList) {
+			result += "\t$table->dropPrimary(["+this.commaSeparatedList(table.primaryKeyList, true)+"]);\n";
+		}
+		
+		if (indices.length) {
+			result += "\t$table->dropIndex(["+this.commaSeparatedList(indices, true)+"]);\n";
+		}
+		
+		result += "}";
+	}
+	
+	result += ");\n";
     return result;
 }
 

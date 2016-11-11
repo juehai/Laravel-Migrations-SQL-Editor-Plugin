@@ -91,7 +91,7 @@ function exportContainer(jsonContainer)
     
 
     
-    var result = "/* SQLite (JS) Plugin Export */\n"
+    var result = "/* Laravel Migrations Plugin Export */\n"
     result += exporter.diffExport(container,compContainer);
     
     
@@ -133,7 +133,6 @@ function typesListForDialect(dialectName)
 	typesList.push("mediumInteger")
 	typesList.push("mediumText")
 	typesList.push("morphs")
-	typesList.push("nullableTimestamps")
 	typesList.push("rememberToken")
 	typesList.push("smallInteger")
 	typesList.push("softDeletes")
