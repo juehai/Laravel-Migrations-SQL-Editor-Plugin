@@ -159,6 +159,30 @@ function ifProp(conditional) {
     return (!((conditional == undefined) || (conditional == false) || (conditional == "0")));
 }
 
+function dump(arr,level) {
+	var dumped_text = "";
+	if(!level) level = 0;
+	
+	//The padding given at the beginning of the line.
+	var level_padding = "";
+	for(var j=0;j<level+1;j++) level_padding += "    ";
+	
+	if(typeof(arr) == 'object') { //Array/Hashes/Objects 
+		for(var item in arr) {
+			var value = arr[item];
+			
+			if(typeof(value) == 'object') { //If it is an array,
+				dumped_text += level_padding + "'" + item + "' ...\n";
+				dumped_text += dump(value,level+1);
+			} else {
+				dumped_text += level_padding + "'" + item + "' => \"" + value + "\"\n";
+			}
+		}
+	} else { //Stings/Chars/Numbers etc.
+		dumped_text = "===>"+arr+"<===("+typeof(arr)+")";
+	}
+	return dumped_text;
+}
 
 DiffExporter.prototype.hasWhiteSpace = function(s) {
   return /\s|\./g.test(s);
@@ -237,6 +261,11 @@ DiffExporter.prototype.commaSeparatedKeyList = function(list,keyName,quoted)
     return result;
 
     
+}
+
+DiffExporter.prototype.capitalizeFirstLetter = function(string)
+{
+	return string.charAt(0).toUpperCase() + string.slice(1);
 }
 
 /**
@@ -503,23 +532,90 @@ DiffExporter.prototype.addField = function(table,field)
     return result;
 }
 
+/*
+'properties' ...
+        'notNull' => "0"
+        'defaultValue' => ""
+        'forcedUnique' => "1"
+        'uid' => "7DB557EE-BFB9-4D14-9C83-9F27A2ED43CE"
+        'indexed' => "0"
+        'unique' => "0"
+        'autoIncrement' => "1"
+        'timezone' => "0"
+        'referenceLinkName' => ""
+        'unsigned' => "1"
+'primaryKey' => "1"
+'name' => "id"
+'ClassType' => "SQLField"
+'type' => "integer"
+
+
+'properties' ...
+        'defaultValue' => ""
+        'notNull' => "1"
+        'uid' => "92A5F0D4-3734-4D14-934F-1DA316E1C28A"
+        'referenceLinkName' => ""
+    'name' => "username"
+    'ClassType' => "SQLField"
+    'type' => "char(200)"
+*/
+
+
 DiffExporter.prototype.fieldSpec = function(table,field) 
 {
-    var result = "";
-    result += this.quoteName(field.name);
-    result += " ";
-    result += field.type;
+    var result = "\t";
+    result += "$table->";
+    
+    switch (field.type) {
+	    case "bigInteger":
+	    case "integer":
+	    case "mediumInteger":
+	    case "smallInteger":
+	    	if (ifProp(field.primaryKey) && ifProp(field.properties.autoIncrement) && ifProp(field.properties.unsigned)) {
+		    	result += this.quoteName(field.type).slice(0, -6);
+		    	result += "ncrements"
+	    	} else {
+	    	    if (ifProp(field.properties.unsigned)) {
+				    result += "unsigned"
+				    result += this.capitalizeFirstLetter(field.type);
+			    } else {
+					result += field.type;    
+			    }
+	    	}
+	    	
+	    	result += "('"+this.quoteName(field.name)+"')";
+	    	break;
+	    case (field.type.match(/^char/) || {}).input:
+	    case (field.type.match(/^string/) || {}).input:
+	    case (field.type.match(/^float/) || {}).input:
+	    case (field.type.match(/^decimal/) || {}).input:
+	    case (field.type.match(/^double/) || {}).input:
+	    	elements = field.type.split("(");
+	    	
+	    	fieldType = elements[0];
+	    	fieldSize = String(elements[1]).slice(0, -1);
+	    		    	
+	    	result += fieldType;
+	    	result += "('"+this.quoteName(field.name)+"', ";
+	    	result += fieldSize +")";
+    }
+    
+    
+    
 
+    
+    
+    
     if (ifProp(field.properties.unique)) {
-        result += " UNIQUE"
+        result += "->unique()"
     }
 
-    if (ifProp(field.properties.notNull)) {
-        result += " NOT NULL"
+    if (!ifProp(field.properties.notNull)) {
+        result += "->nullable()"
     }
 
     if (field.properties.defaultValue != "") {
-        result += " DEFAULT "+this.quotedDefaultValue(field);
+        result += "->default("+this.quotedDefaultValue(field)+")";
     }
     
     return result;
@@ -546,9 +642,7 @@ DiffExporter.prototype.dropTable = function(table)
 DiffExporter.prototype.addTable = function(table) 
 {
     
-    var result = "\nCREATE TABLE "+ this.nameForObject(table)
-    
-    result += "\n(\n";
+    var result = "\nSchema::create('"+ this.nameForObject(table) + "', function(Blueprint $table) {\n"
     
     for (var i=0;i<table.fields.length;i++) {
         var field = table.fields[i];
@@ -561,9 +655,9 @@ DiffExporter.prototype.addTable = function(table)
     }
 
     if (table.primaryKeyList) {
-
+		
         result += "PRIMARY KEY ("+table.primaryKeyList+")"
-
+		
         if (table.foreignKeys.length) {
             result += ",\n";
         }
@@ -591,7 +685,7 @@ DiffExporter.prototype.addTable = function(table)
 
     
     
-    result += "\n);\n"
+    result += "\n});\n"
 
     return result;
 }

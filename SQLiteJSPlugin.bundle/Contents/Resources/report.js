@@ -105,7 +105,7 @@ function exportContainer(jsonContainer)
 function defaultTypeForDialect(dialectName)
 {
     
-    return "INTEGER";
+    return "integer";
     
 }
 
@@ -114,12 +114,36 @@ function typesListForDialect(dialectName)
     
     var typesList = [];
     
-    
-	typesList.push("NUMERIC")
-	typesList.push("INTEGER")
-	typesList.push("REAL")
-	typesList.push("TEXT")
-	typesList.push("BLOB")
+	typesList.push("bigInteger")
+	typesList.push("binary")
+	typesList.push("boolean")
+	typesList.push("char")
+	typesList.push("date")
+	typesList.push("dateTime")
+	typesList.push("decimal")
+	typesList.push("double")
+	typesList.push("enum")
+	typesList.push("float")
+	typesList.push("integer")
+	typesList.push("ipAddress")
+	typesList.push("json")
+	typesList.push("jsonb")
+	typesList.push("longText")
+	typesList.push("macAddress")
+	typesList.push("mediumInteger")
+	typesList.push("mediumText")
+	typesList.push("morphs")
+	typesList.push("nullableTimestamps")
+	typesList.push("rememberToken")
+	typesList.push("smallInteger")
+	typesList.push("softDeletes")
+	typesList.push("string")
+	typesList.push("text")
+	typesList.push("time")
+	typesList.push("tinyInteger")
+	typesList.push("timestamp")
+	typesList.push("timestamps")
+	typesList.push("uuid")
 
     return typesList;
     

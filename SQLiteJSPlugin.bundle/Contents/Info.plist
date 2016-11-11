@@ -5,23 +5,23 @@
 	<key>CFBundleDevelopmentRegion</key>
 	<string>en</string>
 	<key>CFBundleExecutable</key>
-	<string>sqlitejs</string>
+	<string>laravel</string>
 	<key>CFBundleIdentifier</key>
-	<string>com.malcolmhardie.sqleditor.plugins.sqlitejs</string>
+	<string>com.radbasa.sqleditor.plugins.laravel</string>
 	<key>CFBundleInfoDictionaryVersion</key>
 	<string>6.0</string>
 	<key>CFBundleName</key>
-	<string>SQLite JS Plugin</string>
+	<string>Laravel Migrations Plugin</string>
 	<key>CFBundlePackageType</key>
 	<string>BNDL</string>
 	<key>CFBundleShortVersionString</key>
-	<string>1.1</string>
+	<string>0.1</string>
 	<key>CFBundleSignature</key>
 	<string>????</string>
 	<key>CFBundleVersion</key>
 	<string>1</string>
 	<key>NSHumanReadableCopyright</key>
-	<string>Copyright © 2016 MalcolmHardie Solutions. All rights reserved.</string>
+	<string>Copyright © 2016 Rodrigo Basa. All rights reserved.</string>
 	<key>SQLEditorPlugin</key>
 	<dict>
 		<key>supportsDiff</key>
@@ -31,7 +31,7 @@
 		<key>scriptFile</key>
 		<string>report.js</string>
 		<key>name</key>
-		<string>SQLite (JS)</string>
+		<string>Laravel</string>
 		<key>exportIsUserDisplayable</key>
 		<true/>
 		<key>importTypes</key>
@@ -40,7 +40,7 @@
 		<array>
 			<dict>
 				<key>name</key>
-				<string>SQLite (JS)</string>
+				<string>Laravel</string>
 				<key>fileType</key>
 				<string>html</string>
 			</dict>
