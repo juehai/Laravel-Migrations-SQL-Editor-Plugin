@@ -575,6 +575,10 @@ DiffExporter.prototype.fieldSpec = function(table,field)
     result += "$table->";
     
     switch (field.type) {
+	    case "text":
+	    	result += this.quoteName(field.type);
+	    	result += "('"+this.quoteName(field.name)+"')";
+	    	break;
 	    case "bigInteger":
 	    case "integer":
 	    case "mediumInteger":
@@ -663,6 +667,11 @@ DiffExporter.prototype.fieldSpec = function(table,field)
 		        result += "->default("+this.quotedDefaultValue(field)+")";
 		    }
 
+	    	break;
+	    case (field.type.match(/^dateTime|date/) || {}).input:
+	    	result += this.quoteName(field.type)
+	    	result += "('" + this.quoteName(field.name) + "')";
+	    	
 	    	break;
 	    case "rememberToken":
 	    	result += "rememberToken()";
@@ -765,13 +774,13 @@ DiffExporter.prototype.addTable = function(table)
 
 // 		result += dump(foreignKey);
         if (k < table.foreignKeys.length-1) {
-            result += ",\n"
+            result += ";\n"
         }
     }
     
-    result += "\n});\n"
+    result += ";\n});\n"
 
-	result += "\nSchema:dropIfExists('"+ this.nameForObject(table) + "'";
+	result += "\nSchema::dropIfExists('"+ this.nameForObject(table) + "'";
 
 	if (table.primaryKeyList || table.foreignKeys.length) {
 		result += ", function ($table) {\n";
@@ -782,7 +791,7 @@ DiffExporter.prototype.addTable = function(table)
 			for (var k=0;k<table.foreignKeys.length;k++) {
 				var foreignKey = table.foreignKeys[k];
 				
-				result += "'"+this.commaSeparatedKeyList(foreignKey.fieldPairs,"sourceFieldName",true)+"'";
+				result += "'"+this.commaSeparatedKeyList(foreignKey.fieldPairs,"sourceFieldName",true)+"',";
 			}
 			
 			result += "]);\n";
