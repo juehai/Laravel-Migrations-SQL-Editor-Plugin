@@ -582,7 +582,9 @@ DiffExporter.prototype.fieldSpec = function(table,field)
 	    case "bigInteger":
 	    case "integer":
 	    case "mediumInteger":
-	    case "smallInteger":
+        case "smallInteger":
+        case "tinyInteger":
+        case "boolean":
 	    	if (ifProp(field.primaryKey) && ifProp(field.properties.autoIncrement) && ifProp(field.properties.unsigned)) {
 		    	result += this.quoteName(field.type).slice(0, -6);
 		    	result += "ncrements";
